@@ -10,232 +10,77 @@
     <div id="game"></div>
     
     <script>
-        class GameScene extends Phaser.Scene {
-            constructor() {
-                super({ key: 'GameScene' });
-                
-                this.player = null;
-                this.computer = null;
-                this.banana = null;
-                this.cover = [];
-                this.isPlayerTurn = true;
-                this.gameActive = true;
-                this.throwButton = null;
-                this.restartButton = null;
-            }
-            
-            preload() {
-               
-            }
-            
-            create() {
-               
-                this.add.rectangle(0, 0, 800, 500, 0x87CEEB).setOrigin(0, 0);
-                
-              
-                this.add.rectangle(0, 450, 800, 50, 0x8B4513).setOrigin(0, 0);
-                
-                
-                this.player = this.add.circle(100, 400, 30, 0xD2691E);
-                this.computer = this.add.circle(700, 400, 30, 0xA0522D);
-                
-              
-                this.createCover();
-                
-                
-                this.createUI();
-                
-                
-                this.physics.world.setBounds(0, 0, 800, 500);
-            }
-            
-            createCover() {
-                const startX = 300;
-                const startY = 300;
-                
-                for (let i = 0; i < 4; i++) {
-                    for (let j = 0; j < 3; j++) {
-                        const block = this.add.rectangle(
-                            startX + i * 50,
-                            startY + j * 40,
-                            45,
-                            35,
-                            0x696969
-                        );
-                        this.cover.push(block);
-                    }
-                }
-            }
-            
-            createUI() {
-             
-                this.throwButton = document.createElement('button');
-                this.throwButton.textContent = "Throw Banana!";
-                this.throwButton.style.position = 'absolute';
-                this.throwButton.style.top = '520px';
-                this.throwButton.style.left = '350px';
-                this.throwButton.style.padding = '10px 20px';
-                this.throwButton.style.fontSize = '16px';
-                document.body.appendChild(this.throwButton);
-                
-                this.throwButton.onclick = () => {
-                    if (this.gameActive && !this.banana && this.isPlayerTurn) {
-                        this.throwBanana();
-                    }
-                };
-                
-                
-                this.restartButton = document.createElement('button');
-                this.restartButton.textContent = "Play Again";
-                this.restartButton.style.position = 'absolute';
-                this.restartButton.style.top = '520px';
-                this.restartButton.style.left = '500px';
-                this.restartButton.style.padding = '10px 20px';
-                this.restartButton.style.fontSize = '16px';
-                this.restartButton.style.display = 'none';
-                document.body.appendChild(this.restartButton);
-                
-                this.restartButton.onclick = () => {
-                    this.scene.restart();
-                    this.restartButton.style.display = 'none';
-                    this.throwButton.style.display = 'block';
-                    this.throwButton.disabled = false;
-                };
-            }
-            
-            throwBanana() {
-                if (!this.gameActive || this.banana) return;
-                
-                let vx, vy;
-                let startX, startY;
-                
-                if (this.isPlayerTurn) {
-                   
-                    const angle = 45;
-                    const velocity = 120;
-                    startX = 130;
-                    startY = 380;
-                    
-                    vx = Math.cos(angle * Math.PI / 180) * velocity;
-                    vy = -Math.sin(angle * Math.PI / 180) * velocity;
-                } else {
-                    
-                    const angle = 135;
-                    const velocity = 100;
-                    startX = 670;
-                    startY = 380;
-                    
-                    vx = Math.cos(angle * Math.PI / 180) * velocity;
-                    vy = -Math.sin(angle * Math.PI / 180) * velocity;
-                }
-                
-              
-                this.banana = this.add.circle(startX, startY, 12, 0xFFFF00);
-                this.banana.setStrokeStyle(3, 0xFFA500);
-                
-              
-                this.physics.add.existing(this.banana);
-                this.banana.body.setVelocity(vx, vy);
-                this.banana.body.setBounce(0.3, 0.3);
-                this.banana.body.setCollideWorldBounds(true);
-                
-            
-                this.throwButton.disabled = true;
-            }
-            
-            update() {
-                if (!this.gameActive || !this.banana) return;
-                
-              
-                for (let i = this.cover.length - 1; i >= 0; i--) {
-                    const block = this.cover[i];
-                    if (block && Phaser.Geom.Intersects.CircleToRectangle(this.banana, block.getBounds())) {
-                        block.destroy();
-                        this.cover.splice(i, 1);
-                        
-                        this.banana.destroy();
-                        this.banana = null;
-                        
-                        this.time.delayedCall(1000, () => {
-                            this.switchTurn();
-                        });
-                        return;
-                    }
-                }
-                
-               
-                if (Phaser.Geom.Intersects.CircleToCircle(this.banana, this.player)) {
-                    this.endGame("Computer");
-                } else if (Phaser.Geom.Intersects.CircleToCircle(this.banana, this.computer)) {
-                    this.endGame("Player");
-                }
-                
-              
-                if (this.banana && (this.banana.y > 500 || this.banana.x < 0 || this.banana.x > 800)) {
-                    this.banana.destroy();
-                    this.banana = null;
-                    
-                    this.time.delayedCall(1000, () => {
-                        this.switchTurn();
-                    });
-                }
-            }
-            
-            switchTurn() {
-                if (!this.gameActive) return;
-                
-                this.isPlayerTurn = !this.isPlayerTurn;
-                
-                if (this.isPlayerTurn) {
-                    this.throwButton.disabled = false;
-                } else {
-                   
-                    this.time.delayedCall(1000, () => {
-                        if (this.gameActive && !this.banana) {
-                            this.throwBanana();
-                        }
-                    });
-                }
-            }
-            
-            endGame(winner) {
-                this.gameActive = false;
-                
-                if (this.banana) {
-                    this.banana.destroy();
-                    this.banana = null;
-                }
-                
-              
-                this.add.text(400, 250, `${winner} Wins!`, {
-                    fontSize: '48px',
-                    fill: '#FFD700',
-                    backgroundColor: '#000',
-                    padding: { x: 20, y: 10 }
-                }).setOrigin(0.5);
-                
-               
-                this.restartButton.style.display = 'block';
-                this.throwButton.style.display = 'none';
-            }
-        }
-        
-        const config = {
+        let config = { 
             type: Phaser.AUTO,
             width: 800,
-            height: 500,
-            parent: 'game',
+            height: 600,
+            parent:'game',
+            scene:{
+                preload: preload,
+                create: create,
+                update: update,
+            },
             physics: {
                 default: 'arcade',
                 arcade: {
-                    gravity: { y: 300 },
-                    debug: false
+                    gravity: { y: 400 },
+                    debug: false 
                 }
-            },
-            scene: [GameScene]
+            }
         };
+
+        let game = new Phaser.Game(config);
+
+        let gorillaLeft;
+        let gorillaRight;
+        let turn = 'left';
+        let banana;
+
+        function preload(){
+           
+            this.load.image('monkey','banana-game/images/monkey.png')
+            this.load.image('banana','banana-game/images/banana.png')
+        }
+
+        function create(){
+            // Left gorilla
+            gorillaLeft = this.physics.add.sprite(100, 500, 'monkey');
+            gorillaLeft.setImmovable(true);
+            gorillaLeft.body.allowGravity = false
+
         
-        const game = new Phaser.Game(config);
+            gorillaRight = this.physics.add.sprite(700, 500, 'monkey');
+            gorillaRight.setImmovable(true);
+            gorillaRight.body.allowGravity = false;
+            gorillaRight.setFlipX(true); 
+
+            
+            this.input.on('pointerdown',function (pointer){
+                if(turn === 'left'){
+                  
+                    throwBanana(this, gorillaLeft, pointer); 
+                    turn = 'right';
+                } else{
+                  
+                     throwBanana(this, gorillaRight, pointer);
+                     turn = 'left'
+                }
+            },this)
+        }
+
+        function update(){
+           
+        }
+
+      
+        function throwBanana(scene, gorilla, target){
+            let b = scene.physics.add.sprite(gorilla.x, gorilla.y, 'banana');
+            b.setCollideWorldBounds(true);
+            b.setBounce(0.5);
+            scene.physics.moveToObject(b, target, 500);
+            b.setAngularVelocity(300);
+        }
+
     </script>
 </body>
 </html>
