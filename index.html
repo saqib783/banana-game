@@ -4,15 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monkey Banana Battle</title>
+  
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: #222; }
-    </style>
+   body {
+    margin: 0;
+    background: #222;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#game-container {
+    position: relative;
+}
+
+#game {
+    border: 2px solid #555;
+}
+
+.how-to-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 320px;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    z-index: 10;
+    transition: opacity 1s ease;
+}
+
+.how-to-play.hide {
+    opacity: 0;
+    pointer-events: none;
+}
+</style>
 </head>
+
+
+
+
 <body>
+    <div id="game-container">
     <div id="game"></div>
+
+    <div class="how-to-play" id="howToPlay">
+        <h2>🐵 How To Play</h2>
+        <ul>
+            <li>Click to throw banana 🍌</li>
+            <li>Aim higher (gravity ON)</li>
+            <li>Hit monkey = +10 score</li>
+        </ul>
+    </div>
+</div>
+
     
     <script>
+
+
+// phaser
+
+
         let config = { 
             type: Phaser.AUTO,
             width: 1000,
@@ -35,7 +92,7 @@
         let game = new Phaser.Game(config);
 
         function preload() {
-            // POORA URL likhna ZAROORI hai (labs.phaser.io...)
+    
             this.load.image('building', 'images/buildings.png')
             this.load.image('monkey', 'images/monkey.png')
             this.load.image('banana','images/banana.png')
@@ -66,6 +123,14 @@
         } 
         
         function update(){}
+
+
+        // javascript
+
+
+          setTimeout(() => {
+        document.getElementById('howToPlay').classList.add('hide');
+    }, 2000); 
     </script>
 </body>
 </html>
