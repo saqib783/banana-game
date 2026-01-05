@@ -43,6 +43,8 @@
 
         function create() {
             this.add.image(500, 261, 'building')
+                 score = 0;
+    scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#fff' });
            this.leftMonkey =  this.physics.add.image(400, 300, 'monkey').setScale(0.1)
             this.rightMonkey =  this.physics.add.image(750,300, 'monkey').setScale(0.1)
             console.log("Images should be visible now!");
@@ -51,12 +53,14 @@
     this.rightMonkey.body.allowGravity = false;
 
             this.input.on('pointerdown',function(pointer){
-                let banana = this.physics.add.image(this.leftMonkey.x, this.leftMonkey.y,'banana').setScale(0.05)
+                let banana = this.physics.add.image(this.leftMonkey.x, this.leftMonkey.y,'banana').setScale(0.1)
                   this.physics.moveToObject(banana, pointer, 600); 
                     banana.setAngularVelocity(300);
                 
                 this.physics.add.overlap(banana,this.rightMonkey,function(){
                     banana.destroy();
+                     score += 10; 
+            scoreText.setText('Score: ' + score);
                 },null,this)
             },this)
         } 
