@@ -1,3 +1,237 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monkey Banana Battle</title>
+  
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+   body {
+    margin: 0;
+    background: #222;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#game-container {
+    position: relative;
+}
+
+#game {
+    border: 2px solid #555;
+}
+
+.how-to-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 320px;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    z-index: 10;
+    transition: opacity 1s ease;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    cursor: pointer;
+    font-size: 20px;
+    color: #fff;
+}
+.close-btn:hover {
+    color: red;
+}
+
+.how-to-play.hide {
+    opacity: 0;
+    pointer-events: none;
+}
+</style>
+</head>
+
+
+
+
+<body>
+    <div id="game-container">
+    <div id="game"></div>
+
+    <div class="how-to-play" id="howToPlay">
+        <div class="close-btn" id="closeHowToPlay">✖</div>
+        <h2>🐵 How To Play</h2>
+        <ul>
+            <li>Click to throw banana 🍌</li>
+            <li>Aim higher (gravity ON)</li>
+            <li>Hit monkey = +10 score</li>
+        </ul>
+    </div>
+</div>
+
+    
+    <script>
+
+
+// phaser
+
+
+        let config = { 
+            type: Phaser.AUTO,
+            width: 1000,
+            height: 600,
+            parent: 'game',
+           physics: {
+                default: 'arcade',
+                gravity: {
+          
+              y: 300
+        },
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update,
+            }
+        };
+
+        let game = new Phaser.Game(config);
+        let score = 0;
+let scoreText;
+let resultText;
+        let gameActive = true;
+        let gameOverScreen = document.getElementById('gameOver');
+let finalScoreText = document.getElementById('finalScore');
+let finalTimeText = document.getElementById('finalTime');
+
+        function preload() {
+    
+            this.load.image('building', 'images/buildings.png')
+            this.load.image('monkey', 'images/monkey.png')
+            this.load.image('banana','images/banana.png')
+
+
+            this.load.audio('hit','images/hit.mp3')
+             this.load.audio('jump','images/jump.mp3')
+            this.load.audio('second','images/second monkey.mp3')
+        }
+
+        function create() {
+
+             
+    this.startTime = this.time.now;
+      gameActive = true;
+
+            this.add.image(500, 261, 'building')
+                 score = 0;
+    scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#fff' });
+           this.leftMonkey =  this.physics.add.image(400, 300, 'monkey').setScale(0.1);
+            this.leftMonkey.body.allowGravity = false;
+             this.leftMonkey.setCollideWorldBounds(true);
+
+             
+             this.rightMonkey = this.physics.add.image(750, 450, 'monkey').setScale(0.1);
+    this.rightMonkey.setCollideWorldBounds(true);
+          
+
+           
+
+
+     this.jumpSound = this.sound.add('jump');
+    this.hitSound = this.sound.add('hit');
+
+   this.jumpEvent = this.time.addEvent({
+        delay: 1200,
+        loop: true,
+        callback: () => {
+            if (gameActive && this.rightMonkey && this.rightMonkey.body) {
+               
+                if (this.rightMonkey.y > 500 || this.rightMonkey.body.touching.down) {
+                    let power = Phaser.Math.Between(250, 400);
+                    this.rightMonkey.setVelocityY(-power);
+                    this.jumpSound.play();
+                    
+                  
+                    let horizontalMove = Phaser.Math.Between(-50, 50);
+                    this.rightMonkey.setVelocityX(horizontalMove);
+                }
+            }
+        }
+    });
+
+           this.input.on('pointerdown', (pointer) => {
+        if (!gameActive) return;
+        
+        let banana = this.physics.add.image(this.leftMonkey.x, this.leftMonkey.y, 'banana').setScale(0.1);
+         banana.setCollideWorldBounds(true);
+           banana.body.onWorldBounds = true;
+        banana.body.allowGravity = false;
+        this.physics.moveToObject(banana, pointer, 600); 
+        banana.setAngularVelocity(300);
+         this.time.delayedCall(3000, () => {
+            if (banana && banana.active) {
+                banana.destroy();
+            }
+        });
+        
+        // Check for collision with right monkey
+        this.physics.add.overlap(banana, this.rightMonkey, () => {
+            if (!gameActive) return;
+            
+            // Play hit sound
+            this.hitSound.play();
+            
+            // Increment score
+            score += 10;
+            scoreText.setText('Score: ' + score);
+            
+            // Calculate time
+            let endTime = this.time.now;
+            let seconds = ((endTime - this.startTime) / 1000).toFixed(2);
+            
+            // Show hit message
+            if (resultText) resultText.destroy();
+            resultText = this.add.text(
+                350,
+                280,
+                `🎯 HIT!\nTime: ${seconds} sec`,
+                {
+                    fontSize: '32px',
+                    fill: '#00ffcc',
+                    align: 'center'
+                }
+            );
+            
+            // Game over - player hit the jumping monkey
+            gameOver(this, seconds);
+            
+            // Destroy banana
+            banana.destroy();
+            
+        }, null, this);
+    });
+}
+        
+        function update(){}
+
+
+        // javascript
+
+
+        
+    document.getElementById('closeHowToPlay').addEventListener('click', () => {
+    document.getElementById('howToPlay').classList.add('hide');
+});
+    </script>
+</body>
+</html> -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,98 +273,290 @@
     transition: opacity 1s ease;
 }
 
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    cursor: pointer;
+    font-size: 20px;
+    color: #fff;
+}
+.close-btn:hover {
+    color: red;
+}
+
 .how-to-play.hide {
     opacity: 0;
     pointer-events: none;
 }
+
+.game-over {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    background: rgba(0,0,0,0.9);
+    color: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    z-index: 20;
+    display: none;
+}
+
+.game-over.show {
+    display: block;
+}
+
+.game-over h2 {
+    color: #ff5555;
+    font-size: 36px;
+    margin-bottom: 20px;
+}
+
+.restart-btn {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.restart-btn:hover {
+    background: #45a049;
+}
 </style>
 </head>
-
-
-
 
 <body>
     <div id="game-container">
     <div id="game"></div>
 
     <div class="how-to-play" id="howToPlay">
+        <div class="close-btn" id="closeHowToPlay">✖</div>
         <h2>🐵 How To Play</h2>
         <ul>
             <li>Click to throw banana 🍌</li>
             <li>Aim higher (gravity ON)</li>
             <li>Hit monkey = +10 score</li>
+            <li>Hit the jumping monkey to win!</li>
         </ul>
+    </div>
+    
+    <div class="game-over" id="gameOver">
+        <h2>🎉 GAME OVER!</h2>
+        <p id="finalScore">Score: 0</p>
+        <p id="finalTime">Time: 0.00 sec</p>
+        <button class="restart-btn" id="restartBtn">Play Again</button>
     </div>
 </div>
 
     
     <script>
-
-
 // phaser
-
-
-        let config = { 
-            type: Phaser.AUTO,
-            width: 1000,
-            height: 600,
-            parent: 'game',
-           physics: {
-                default: 'arcade',
-                gravity: {
-          
-              y: 300
-        },
+let config = { 
+    type: Phaser.AUTO,
+    width: 1000,
+    height: 600,
+    parent: 'game',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: {
+                y: 300
             },
-            scene: {
-                preload: preload,
-                create: create,
-                update: update,
-            }
-        };
-
-        let game = new Phaser.Game(config);
-
-        function preload() {
-    
-            this.load.image('building', 'images/buildings.png')
-            this.load.image('monkey', 'images/monkey.png')
-            this.load.image('banana','images/banana.png')
+            debug: false
         }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update,
+    }
+};
 
-        function create() {
-            this.add.image(500, 261, 'building')
-                 score = 0;
+let game = new Phaser.Game(config);
+let score = 0;
+let scoreText;
+let resultText;
+let gameActive = true;
+let bgm;
+let gameOverScreen = document.getElementById('gameOver');
+let finalScoreText = document.getElementById('finalScore');
+let finalTimeText = document.getElementById('finalTime');
+
+function preload() {
+    this.load.image('building', 'images/buildings.png')
+    this.load.image('monkey', 'images/monkey.png')
+    this.load.image('banana','images/banana.png')
+    this.load.audio('hit','images/hit.mp3')
+    this.load.audio('jump','images/jump.mp3')
+      this.load.audio('bgm','images/Donkey Kong Country OST (Super Nintendo) - Track 01_23 - Theme.mp3')
+}
+
+function create() {
+    this.startTime = this.time.now;
+    gameActive = true;
+      if (!bgm) {
+        bgm = this.sound.add('bgm', {
+            volume: 0.5, 
+            loop: true 
+        });
+    }
+    
+ 
+    if (!bgm.isPlaying) {
+        bgm.play();
+    }
+    
+   
+    this.add.image(500, 261, 'building')
+    
+   
+    score = 0;
     scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#fff' });
-           this.leftMonkey =  this.physics.add.image(400, 300, 'monkey').setScale(0.1)
-            this.rightMonkey =  this.physics.add.image(750,300, 'monkey').setScale(0.1)
-            console.log("Images should be visible now!");
-
-            this.leftMonkey.body.allowGravity = false;
-    this.rightMonkey.body.allowGravity = false;
-
-            this.input.on('pointerdown',function(pointer){
-                let banana = this.physics.add.image(this.leftMonkey.x, this.leftMonkey.y,'banana').setScale(0.1)
-                  this.physics.moveToObject(banana, pointer, 600); 
-                    banana.setAngularVelocity(300);
-                
-                this.physics.add.overlap(banana,this.rightMonkey,function(){
-                    banana.destroy();
-                     score += 10; 
-            scoreText.setText('Score: ' + score);
-                },null,this)
-            },this)
-        } 
+   
+    this.leftMonkey = this.physics.add.image(400, 300, 'monkey').setScale(0.1);
+    this.leftMonkey.body.allowGravity = false;
+    this.leftMonkey.setCollideWorldBounds(true);
+    
+  
+    this.rightMonkey = this.physics.add.image(750, 300, 'monkey').setScale(0.1);
+    this.rightMonkey.setCollideWorldBounds(true);
+    
+    
+  
+ 
+    
+ 
+    this.jumpSound = this.sound.add('jump');
+    this.hitSound = this.sound.add('hit');
+    
+   
+    this.jumpEvent = this.time.addEvent({
+        delay: 1200,
+        loop: true,
+        callback: () => {
+            if (gameActive && this.rightMonkey && this.rightMonkey.body) {
+                // Check if monkey is near the ground (y > 500) or touching down
+                if (this.rightMonkey.y > 100 || this.rightMonkey.body.touching.down) {
+                    let power = Phaser.Math.Between(250, 400);
+                    this.rightMonkey.setVelocityY(-power);
+                    this.jumpSound.play();
+                    
+                    // Add a small horizontal movement to make jumping more interesting
+                    let horizontalMove = Phaser.Math.Between(-50, 50);
+                    this.rightMonkey.setVelocityX(horizontalMove);
+                }
+            }
+        }
+    });
+    
+    
+    this.input.on('pointerdown', (pointer) => {
+        if (!gameActive) return;
         
-        function update(){}
+        let banana = this.physics.add.image(this.leftMonkey.x, this.leftMonkey.y, 'banana').setScale(0.1);
+        banana.setCollideWorldBounds(true);
+        banana.body.onWorldBounds = true;
+        this.physics.moveToObject(banana, pointer, 600); 
+        banana.setAngularVelocity(300);
+        
+       
+        this.time.delayedCall(3000, () => {
+            if (banana && banana.active) {
+                banana.destroy();
+            }
+        });
+        
+      
+        this.physics.add.overlap(banana, this.rightMonkey, () => {
+            if (!gameActive) return;
+            
+           
+            this.hitSound.play();
+            
+          
+            score += 10;
+            scoreText.setText('Score: ' + score);
+         
+            let endTime = this.time.now;
+            let seconds = ((endTime - this.startTime) / 1000).toFixed(2);
+            
+           
+            if (resultText) resultText.destroy();
+            resultText = this.add.text(
+                350,
+                280,
+                `🎯 HIT!\nTime: ${seconds} sec`,
+                {
+                    fontSize: '32px',
+                    fill: '#00ffcc',
+                    align: 'center'
+                }
+            );
+           
+            gameOver(this, seconds);
+            
+           
+            banana.destroy();
+            
+        }, null, this);
+    });
+}
+
+function update() {
+  
+    if (this.rightMonkey && gameActive) {
+        
+        if (this.rightMonkey.x < 650) this.rightMonkey.x = 650;
+        if (this.rightMonkey.x > 850) this.rightMonkey.x = 850;
+        
+      
+        if (this.rightMonkey.body.touching.down) {
+            this.rightMonkey.setVelocityX(0);
+        }
+    }
+}
+
+function gameOver(scene, seconds) {
+    gameActive = false;
+    
+
+    if (scene.jumpEvent) {
+        scene.jumpEvent.remove();
+    }
+    
+   
+    scene.physics.pause();
+    
+  
+    finalScoreText.textContent = `Final Score: ${score}`;
+    finalTimeText.textContent = `Time: ${seconds} sec`;
+    gameOverScreen.classList.add('show');
+}
+
+function restartGame() {
+  
+    gameOverScreen.classList.remove('show');
+    
+  
+    document.getElementById('howToPlay').classList.add('hide');
+    
+ 
+    game.scene.scenes[0].scene.restart();
+}
 
 
-        // javascript
+document.getElementById('closeHowToPlay').addEventListener('click', () => {
+    document.getElementById('howToPlay').classList.add('hide');
+});
 
-
-          setTimeout(() => {
-        document.getElementById('howToPlay').classList.add('hide');
-    }, 2000); 
+document.getElementById('restartBtn').addEventListener('click', restartGame);
     </script>
 </body>
 </html>
