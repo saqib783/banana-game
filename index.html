@@ -111,21 +111,58 @@ let finalScoreText = document.getElementById('finalScore');
 let finalTimeText = document.getElementById('finalTime');
 let recordMessage = document.getElementById('recordMessage');
 
+
+let scoreText;
+
+
+function showMinusEffect(scene, x, y, points) {
+    let minusText = scene.add.text(x, y, `-${points}`, {
+        fontSize: '24px',
+        fill: '#ff0000',
+        fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    scene.tweens.add({
+        targets: minusText,
+        y: y - 50,
+        alpha: 0,
+        duration: 1000,
+        onComplete: () => {
+            minusText.destroy();
+        }
+    });
+}
+
 function preload() {
     this.load.image('brownGorilla','images/bg-removed-brownGorilla.png')
     this.load.image('building', 'images/buildings.png')
     this.load.image('monkey', 'images/monkey.png')
     this.load.image('banana','images/banana.png')
+    this.load.image('balloon','images/balloon.png')
+    this.load.image('plane','images/plane.png')
     this.load.audio('hit','images/hit.mp3')
     this.load.audio('jump','images/jump.mp3')
     this.load.audio('bgm','images/Donkey Kong Country OST (Super Nintendo) - Track 01_23 - Theme.mp3')
     this.load.audio('fart','images/dry-fart.mp3')
+    this.load.audio('buzz','images/buzz.mp3')
 }
 
 function create() {
+    this.balloons = []; 
+    this.planes = [];   
     this.totalTime = 50; 
     this.timeLeft = this.totalTime;
     gameActive = true;
+
+    this.buzzerSound = this.sound.add('buzz');
+
+    scoreText = this.add.text(20, 20, `Score: ${score}`, {
+        fontSize: '32px',
+        fill: '#00ff00',
+        fontStyle: 'bold',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        padding: { x: 10, y: 5 }
+    }).setDepth(10);
 
     this.timerText = this.add.text(980, 20, "0:50", { 
         fontSize: '32px', 
@@ -136,7 +173,6 @@ function create() {
     }).setOrigin(1, 0);
     this.timerText.setDepth(10);
 
-   
     this.timerEvent = this.time.addEvent({
         delay: 1000,
         loop: true,
@@ -150,32 +186,130 @@ function create() {
                 gameActive = false;
                 this.physics.pause();
                 if (this.jumpEvent) this.jumpEvent.remove();
+                if (this.balloonEvent) this.balloonEvent.remove();
+                if (this.planeEvent) this.planeEvent.remove();
                 showGameOverScreen();
             }
         }
     });
-
     
+    this.add.image(500, 261, 'building');
+
     if (!localStorage.getItem('gameStarted')) {
         document.getElementById('howToPlay').classList.remove('hide');
         localStorage.setItem('gameStarted', 'true');
     }
 
-    
     if (!bgm) { bgm = this.sound.add('bgm', { volume: 0.5, loop: true }); }
     if (!bgm.isPlaying) bgm.play();
 
-    this.add.image(500, 261, 'building');
-
     score = 0;
+    scoreText.setText(`Score: ${score}`);
 
-   
     this.leftMonkey = this.physics.add.image(400, 300, 'brownGorilla').setScale(0.1);
     this.leftMonkey.body.allowGravity = false;
     this.leftMonkey.setCollideWorldBounds(true);
+    const buildingTopY = 300;
+    this.leftMonkey.y = buildingTopY;
+    
+    this.gorillaMoveEvent = this.time.addEvent({
+        delay: 1000,
+        loop: true,
+        callback: () => {
+            if(!gameActive) return;
+            let speed = Phaser.Math.Between(40,50);
+            let direction = Phaser.Math.Between(0,1) === 0 ? -1 : 1;
+            this.leftMonkey.setVelocityX(speed * direction);
+        }
+    });
 
     this.rightMonkey = this.physics.add.image(750, 300, 'monkey').setScale(0.1);
     this.rightMonkey.setCollideWorldBounds(true);
+
+    
+    this.balloonEvent = this.time.addEvent({
+        delay: 5000, 
+        loop: true,
+        callback: () => {
+            if (!gameActive) return;
+            
+            let balloonX = 1000;
+            let balloonY = Phaser.Math.Between(100, 500);
+            
+            let balloon = this.physics.add.image(balloonX, balloonY, 'balloon').setScale(0.2); 
+            balloon.body.allowGravity = false;
+            balloon.setVelocityX(-100);
+            balloon.setVelocityY(-50);
+            
+            
+            this.balloons.push(balloon);
+            
+            
+            this.time.delayedCall(10000, () => {
+                if (balloon && balloon.active) {
+                    balloon.destroy();
+                    let index = this.balloons.indexOf(balloon);
+                    if (index !== -1) this.balloons.splice(index, 1);
+                }
+            });
+        }
+    });
+
+   
+    this.planeEvent = this.time.addEvent({
+        delay: 5000,
+        loop: true,
+        callback: () => {
+            if (!gameActive) return;
+            
+            let planeX = 1100; 
+            let planeY = Phaser.Math.Between(100, 300);
+            let velocityX = -200;
+            
+            let plane = this.physics.add.image(planeX, planeY, 'plane').setScale(0.2); 
+            plane.body.allowGravity = false;
+            plane.setVelocityX(velocityX);
+            
+           
+            this.planes.push(plane);
+            
+           
+            this.time.delayedCall(8000, () => {
+                if (plane && plane.active) {
+                    plane.destroy();
+                    let index = this.planes.indexOf(plane);
+                    if (index !== -1) this.planes.splice(index, 1);
+                }
+            });
+        }
+    });
+
+    
+    let firstBalloon = this.physics.add.image(1000, 300, 'balloon').setScale(0.2);
+    firstBalloon.body.allowGravity = false;
+    firstBalloon.setVelocityX(-100);
+    firstBalloon.setVelocityY(-50);
+    this.balloons.push(firstBalloon); 
+    this.time.delayedCall(10000, () => {
+        if (firstBalloon && firstBalloon.active) {
+            firstBalloon.destroy();
+            let index = this.balloons.indexOf(firstBalloon);
+            if (index !== -1) this.balloons.splice(index, 1);
+        }
+    });
+
+    
+    let firstPlane = this.physics.add.image(1100, 200, 'plane').setScale(0.2); 
+    firstPlane.body.allowGravity = false;
+    firstPlane.setVelocityX(-200);
+    this.planes.push(firstPlane); 
+    this.time.delayedCall(8000, () => {
+        if (firstPlane && firstPlane.active) {
+            firstPlane.destroy();
+            let index = this.planes.indexOf(firstPlane);
+            if (index !== -1) this.planes.splice(index, 1);
+        }
+    });
 
     this.jumpSound = this.sound.add('jump');
     this.hitSound = this.sound.add('hit');
@@ -198,7 +332,7 @@ function create() {
         }
     });
 
-    
+   
     this.input.on('pointerdown', (pointer) => {
         if (!gameActive) return;
 
@@ -209,14 +343,51 @@ function create() {
         banana.setAngularVelocity(300);
         this.fartSound.play();
 
-        this.time.delayedCall(3000, () => { if (banana && banana.active) banana.destroy(); });
+        
+        this.time.delayedCall(3000, () => { 
+            if (banana && banana.active) banana.destroy(); 
+        });
 
+        
         this.physics.add.overlap(banana, this.rightMonkey, () => {
             if (!gameActive) return;
             this.hitSound.play();
             score += 10;
+            scoreText.setText(`Score: ${score}`);
             banana.destroy();
         }, null, this);
+
+       
+        for (let i = 0; i < this.balloons.length; i++) {
+            this.physics.add.overlap(banana, this.balloons[i], () => {
+                if (!gameActive) return;
+                score -= 5;
+                if (score < 0) score = 0;
+                this.buzzerSound.play();
+                scoreText.setText(`Score: ${score}`);
+                showMinusEffect(this, this.balloons[i].x, this.balloons[i].y, 5);
+                banana.destroy();
+                this.balloons[i].destroy();
+                this.balloons.splice(i, 1);
+                i--; 
+            });
+        }
+        
+        
+        for (let i = 0; i < this.planes.length; i++) {
+            this.physics.add.overlap(banana, this.planes[i], () => {
+                if (!gameActive) return;
+                score -= 10;
+                if (score < 0) score = 0;
+                this.buzzerSound.play();
+                scoreText.setText(`Score: ${score}`);
+                showMinusEffect(this, this.planes[i].x, this.planes[i].y, 10);
+                banana.destroy();
+                this.planes[i].destroy();
+                this.planes.splice(i, 1);
+                i--; 
+            });
+        }
     });
 }
 
@@ -226,10 +397,22 @@ function update() {
         if (this.rightMonkey.x > 850) this.rightMonkey.x = 850;
         if (this.rightMonkey.body.touching.down) this.rightMonkey.setVelocityX(0);
     }
+    
+    if (this.leftMonkey.x < 200) {
+        this.leftMonkey.x = 200;
+        this.leftMonkey.setVelocityX(20);
+    }
+    if (this.leftMonkey.x > 500) {
+        this.leftMonkey.x = 500;
+        this.leftMonkey.setVelocityX(-20);
+    }
 }
 
 function showGameOverScreen() {
     finalScoreText.textContent = `Score: ${score}`;
+    let minutes = Math.floor((50 - game.scene.scenes[0].timeLeft) / 60);
+    let seconds = (50 - game.scene.scenes[0].timeLeft) % 60;
+    finalTimeText.textContent = `Time: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     gameOverScreen.classList.add('show');
 }
 
