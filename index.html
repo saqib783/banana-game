@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monkey Banana Battle</title>
-  
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-    <style>
-   body {
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monkey Banana Battle</title>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<style>
+body {
     margin: 0;
     background: #222;
     display: flex;
@@ -15,19 +15,12 @@
     align-items: center;
     height: 100vh;
 }
-
-#game-container {
-    position: relative;
-}
-
-#game {
-    border: 2px solid #555;
-}
+#game-container { position: relative; }
+#game { border: 2px solid #555; }
 
 .how-to-play {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     width: 320px;
     background: rgba(0,0,0,0.85);
@@ -38,28 +31,18 @@
     z-index: 10;
     transition: opacity 1s ease;
 }
-
 .close-btn {
     position: absolute;
-    top: 10px;
-    right: 12px;
+    top: 10px; right: 12px;
     cursor: pointer;
-    font-size: 20px;
-    color: #fff;
+    font-size: 20px; color: #fff;
 }
-.close-btn:hover {
-    color: red;
-}
-
-.how-to-play.hide {
-    opacity: 0;
-    pointer-events: none;
-}
+.close-btn:hover { color: red; }
+.how-to-play.hide { opacity: 0; pointer-events: none; }
 
 .game-over {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     width: 400px;
     background: rgba(0,0,0,0.9);
@@ -70,17 +53,8 @@
     z-index: 20;
     display: none;
 }
-
-.game-over.show {
-    display: block;
-}
-
-.game-over h2 {
-    color: #ff5555;
-    font-size: 36px;
-    margin-bottom: 20px;
-}
-
+.game-over.show { display: block; }
+.game-over h2 { color: #ff5555; font-size: 36px; margin-bottom: 20px; }
 .restart-btn {
     background: #4CAF50;
     color: white;
@@ -91,15 +65,11 @@
     cursor: pointer;
     margin-top: 20px;
 }
-
-.restart-btn:hover {
-    background: #45a049;
-}
+.restart-btn:hover { background: #45a049; }
 </style>
 </head>
-
 <body>
-    <div id="game-container">
+<div id="game-container">
     <div id="game"></div>
 
     <div class="how-to-play" id="howToPlay">
@@ -112,44 +82,28 @@
             <li>Hit the jumping monkey to win!</li>
         </ul>
     </div>
-    
+
     <div class="game-over" id="gameOver">
         <h2>🎉 GAME OVER!</h2>
         <p id="finalScore">Score: 0</p>
-        <p id="finalTime">Time: 0.00 sec</p>
+        <p id="finalTime">Time: 0:00</p>
         <p id="recordMessage"></p>
         <button class="restart-btn" id="restartBtn">Play Again</button>
     </div>
 </div>
 
-    
-    <script>
-// phaser
+<script>
 let config = { 
     type: Phaser.AUTO,
     width: 1000,
     height: 600,
     parent: 'game',
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: {
-                y: 300
-            },
-            debug: false
-        }
-    },
-    scene: {
-        preload: preload,
-        create: create,
-        update: update,
-    }
+    physics: { default: 'arcade', arcade: { gravity: { y: 300 }, debug: false } },
+    scene: { preload: preload, create: create, update: update }
 };
 
 let game = new Phaser.Game(config);
 let score = 0;
-let scoreText;
-let resultText;
 let gameActive = true;
 let bgm;
 let gameOverScreen = document.getElementById('gameOver');
@@ -169,41 +123,64 @@ function preload() {
 }
 
 function create() {
-    this.startTime = this.time.now;
+    this.totalTime = 50; 
+    this.timeLeft = this.totalTime;
     gameActive = true;
-    
+
+    this.timerText = this.add.text(980, 20, "0:50", { 
+        fontSize: '32px', 
+        fill: '#ff0', 
+        fontStyle: 'bold', 
+        backgroundColor: 'rgba(0,0,0,0.5)', 
+        padding: { x: 10, y: 5 } 
+    }).setOrigin(1, 0);
+    this.timerText.setDepth(10);
+
+   
+    this.timerEvent = this.time.addEvent({
+        delay: 1000,
+        loop: true,
+        callback: () => {
+            if (!gameActive) return;
+            this.timeLeft--;
+            let minutes = Math.floor(this.timeLeft / 60);
+            let seconds = this.timeLeft % 60;
+            this.timerText.setText(`${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+            if (this.timeLeft <= 0) {
+                gameActive = false;
+                this.physics.pause();
+                if (this.jumpEvent) this.jumpEvent.remove();
+                showGameOverScreen();
+            }
+        }
+    });
+
     
     if (!localStorage.getItem('gameStarted')) {
         document.getElementById('howToPlay').classList.remove('hide');
         localStorage.setItem('gameStarted', 'true');
     }
+
     
-    if (!bgm) {
-        bgm = this.sound.add('bgm', {
-            volume: 0.5, 
-            loop: true 
-        });
-    }
-    
-    if (!bgm.isPlaying) {
-        bgm.play();
-    }
-    
-    this.add.image(500, 261, 'building')
-    
+    if (!bgm) { bgm = this.sound.add('bgm', { volume: 0.5, loop: true }); }
+    if (!bgm.isPlaying) bgm.play();
+
+    this.add.image(500, 261, 'building');
+
     score = 0;
+
    
     this.leftMonkey = this.physics.add.image(400, 300, 'brownGorilla').setScale(0.1);
     this.leftMonkey.body.allowGravity = false;
     this.leftMonkey.setCollideWorldBounds(true);
-    
+
     this.rightMonkey = this.physics.add.image(750, 300, 'monkey').setScale(0.1);
     this.rightMonkey.setCollideWorldBounds(true);
-    
+
     this.jumpSound = this.sound.add('jump');
     this.hitSound = this.sound.add('hit');
     this.fartSound = this.sound.add('fart');
-    
+
     this.jumpEvent = this.time.addEvent({
         delay: 1200,
         loop: true,
@@ -213,56 +190,32 @@ function create() {
                     let power = Phaser.Math.Between(250, 400);
                     this.rightMonkey.setVelocityY(-power);
                     this.jumpSound.play();
-                    
+
                     let horizontalMove = Phaser.Math.Between(-50, 50);
                     this.rightMonkey.setVelocityX(horizontalMove);
                 }
             }
         }
     });
+
     
     this.input.on('pointerdown', (pointer) => {
         if (!gameActive) return;
-        
+
         let banana = this.physics.add.image(this.leftMonkey.x, this.leftMonkey.y, 'banana').setScale(0.05);
         banana.setCollideWorldBounds(true);
         banana.body.onWorldBounds = true;
-        this.physics.moveToObject(banana, pointer, 600); 
+        this.physics.moveToObject(banana, pointer, 600);
         banana.setAngularVelocity(300);
         this.fartSound.play();
-        
-        this.time.delayedCall(3000, () => {
-            if (banana && banana.active) {
-                banana.destroy();
-            }
-        });
-        
+
+        this.time.delayedCall(3000, () => { if (banana && banana.active) banana.destroy(); });
+
         this.physics.add.overlap(banana, this.rightMonkey, () => {
             if (!gameActive) return;
-            
             this.hitSound.play();
-            
             score += 10;
-         
-            let endTime = this.time.now;
-            let seconds = ((endTime - this.startTime) / 1000).toFixed(2);
-            
-            if (resultText) resultText.destroy();
-            resultText = this.add.text(
-                350,
-                280,
-                `🎯 HIT!\nTime: ${seconds} sec`,
-                {
-                    fontSize: '32px',
-                    fill: '#00ffcc',
-                    align: 'center'
-                }
-            );
-           
-            gameOver(this, seconds);
-            
             banana.destroy();
-            
         }, null, this);
     });
 }
@@ -271,43 +224,12 @@ function update() {
     if (this.rightMonkey && gameActive) {
         if (this.rightMonkey.x < 650) this.rightMonkey.x = 650;
         if (this.rightMonkey.x > 850) this.rightMonkey.x = 850;
-        
-        if (this.rightMonkey.body.touching.down) {
-            this.rightMonkey.setVelocityX(0);
-        }
+        if (this.rightMonkey.body.touching.down) this.rightMonkey.setVelocityX(0);
     }
 }
 
-function gameOver(scene, seconds) {
-    gameActive = false;
-       if (scene.jumpEvent) {
-        scene.jumpEvent.remove();
-    }
-     scene.physics.pause();
-      let bestTime = localStorage.getItem('bestTime');
-    let message = '';
-    
-    if (bestTime === null) {
-       
-        localStorage.setItem('bestTime', seconds);
-        message = `🎉 First Time Record: ${seconds} sec`;
-    } else {
-        bestTime = Number(bestTime);
-        
-        if (seconds < bestTime) {
-            localStorage.setItem('bestTime', seconds);
-            message = ` NEW BEST TIME: ${seconds} sec (Previous: ${bestTime} sec)`;
-        } else if (seconds === bestTime) {
-            message = ` Equal to best time: ${seconds} sec`;
-        } else {
-            message = ` Best time: ${bestTime} sec (Your time: ${seconds} sec)`;
-        }
-    }
-
-    finalScoreText.textContent = `Final Score: ${score}`;
-    finalTimeText.textContent = `Time: ${seconds} sec`;
-    recordMessage.textContent = message;
-
+function showGameOverScreen() {
+    finalScoreText.textContent = `Score: ${score}`;
     gameOverScreen.classList.add('show');
 }
 
@@ -319,9 +241,7 @@ function restartGame() {
 document.getElementById('closeHowToPlay').addEventListener('click', () => {
     document.getElementById('howToPlay').classList.add('hide');
 });
-
-
 document.getElementById('restartBtn').addEventListener('click', restartGame);
-    </script>
+</script>
 </body>
 </html>
