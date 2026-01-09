@@ -110,10 +110,7 @@ let gameOverScreen = document.getElementById('gameOver');
 let finalScoreText = document.getElementById('finalScore');
 let finalTimeText = document.getElementById('finalTime');
 let recordMessage = document.getElementById('recordMessage');
-
-
 let scoreText;
-
 
 function showMinusEffect(scene, x, y, points) {
     let minusText = scene.add.text(x, y, `-${points}`, {
@@ -140,11 +137,14 @@ function preload() {
     this.load.image('banana','images/banana.png')
     this.load.image('balloon','images/balloon.png')
     this.load.image('plane','images/plane.png')
+    this.load.image('clock','images/clock-removebg-preview.png')
     this.load.audio('hit','images/hit.mp3')
     this.load.audio('jump','images/jump.mp3')
     this.load.audio('bgm','images/Donkey Kong Country OST (Super Nintendo) - Track 01_23 - Theme.mp3')
     this.load.audio('fart','images/dry-fart.mp3')
     this.load.audio('buzz','images/buzz.mp3')
+    this.load.audio('pew','images/pew.mp3')
+     this.load.audio('panhit','images/pan hit.mp3')
 }
 
 function create() {
@@ -188,6 +188,7 @@ function create() {
                 if (this.jumpEvent) this.jumpEvent.remove();
                 if (this.balloonEvent) this.balloonEvent.remove();
                 if (this.planeEvent) this.planeEvent.remove();
+                if (this.clockEvent) this.clockEvent.remove();
                 showGameOverScreen();
             }
         }
@@ -207,26 +208,14 @@ function create() {
     scoreText.setText(`Score: ${score}`);
 
     this.leftMonkey = this.physics.add.image(400, 300, 'brownGorilla').setScale(0.1);
-    this.leftMonkey.body.allowGravity = false;
+    this.leftMonkey.body.allowGravity = true;
     this.leftMonkey.setCollideWorldBounds(true);
     const buildingTopY = 300;
     this.leftMonkey.y = buildingTopY;
     
-    this.gorillaMoveEvent = this.time.addEvent({
-        delay: 1000,
-        loop: true,
-        callback: () => {
-            if(!gameActive) return;
-            let speed = Phaser.Math.Between(40,50);
-            let direction = Phaser.Math.Between(0,1) === 0 ? -1 : 1;
-            this.leftMonkey.setVelocityX(speed * direction);
-        }
-    });
-
-    this.rightMonkey = this.physics.add.image(750, 300, 'monkey').setScale(0.1);
+    this.rightMonkey = this.physics.add.image(550, 300, 'monkey').setScale(0.1);
     this.rightMonkey.setCollideWorldBounds(true);
 
-    
     this.balloonEvent = this.time.addEvent({
         delay: 5000, 
         loop: true,
@@ -241,9 +230,7 @@ function create() {
             balloon.setVelocityX(-100);
             balloon.setVelocityY(-50);
             
-            
             this.balloons.push(balloon);
-            
             
             this.time.delayedCall(10000, () => {
                 if (balloon && balloon.active) {
@@ -255,7 +242,6 @@ function create() {
         }
     });
 
-   
     this.planeEvent = this.time.addEvent({
         delay: 5000,
         loop: true,
@@ -270,10 +256,8 @@ function create() {
             plane.body.allowGravity = false;
             plane.setVelocityX(velocityX);
             
-           
             this.planes.push(plane);
             
-           
             this.time.delayedCall(8000, () => {
                 if (plane && plane.active) {
                     plane.destroy();
@@ -284,7 +268,6 @@ function create() {
         }
     });
 
-    
     let firstBalloon = this.physics.add.image(1000, 300, 'balloon').setScale(0.2);
     firstBalloon.body.allowGravity = false;
     firstBalloon.setVelocityX(-100);
@@ -298,7 +281,6 @@ function create() {
         }
     });
 
-    
     let firstPlane = this.physics.add.image(1100, 200, 'plane').setScale(0.2); 
     firstPlane.body.allowGravity = false;
     firstPlane.setVelocityX(-200);
@@ -311,9 +293,43 @@ function create() {
         }
     });
 
+
+    this.clockEvent = this.time.addEvent({
+        delay: 10000,
+        loop: true,
+        callback: () => {
+            if (!gameActive) return;
+            
+            let clock = this.physics.add.image(
+                Phaser.Math.Between(100, 900),
+                0,
+                'clock'
+            ).setScale(0.1);
+
+            clock.setVelocityY(150);
+            clock.body.allowGravity = false;
+
+            
+            this.physics.add.overlap(clock, this.leftMonkey, () => {
+                this.timeLeft += 10; 
+                clock.destroy();
+                this.panhitSound.play();
+            });
+
+            
+            this.time.delayedCall(5000, () => {
+                if (clock && clock.active) {
+                    clock.destroy();
+                }
+            });
+        }
+    });
+
     this.jumpSound = this.sound.add('jump');
     this.hitSound = this.sound.add('hit');
     this.fartSound = this.sound.add('fart');
+    this.pewSound = this.sound.add('pew');
+    this.panhitSound = this.sound.add('panhit')
 
     this.jumpEvent = this.time.addEvent({
         delay: 1200,
@@ -332,32 +348,29 @@ function create() {
         }
     });
 
-   
     this.input.on('pointerdown', (pointer) => {
         if (!gameActive) return;
 
         let banana = this.physics.add.image(this.leftMonkey.x, this.leftMonkey.y, 'banana').setScale(0.05);
         banana.setCollideWorldBounds(true);
         banana.body.onWorldBounds = true;
-        this.physics.moveToObject(banana, pointer, 600);
+        this.physics.moveToObject(banana, pointer, 650);
         banana.setAngularVelocity(300);
-        this.fartSound.play();
+         this.pewSound.play()
 
-        
         this.time.delayedCall(3000, () => { 
             if (banana && banana.active) banana.destroy(); 
         });
 
-        
         this.physics.add.overlap(banana, this.rightMonkey, () => {
             if (!gameActive) return;
             this.hitSound.play();
+             this.fartSound.play();
             score += 10;
             scoreText.setText(`Score: ${score}`);
             banana.destroy();
         }, null, this);
 
-       
         for (let i = 0; i < this.balloons.length; i++) {
             this.physics.add.overlap(banana, this.balloons[i], () => {
                 if (!gameActive) return;
@@ -373,7 +386,6 @@ function create() {
             });
         }
         
-        
         for (let i = 0; i < this.planes.length; i++) {
             this.physics.add.overlap(banana, this.planes[i], () => {
                 if (!gameActive) return;
@@ -388,24 +400,25 @@ function create() {
                 i--; 
             });
         }
-    });
-}
+    }); 
+
+    this.cursors = this.input.keyboard.createCursorKeys();
+} 
 
 function update() {
-    if (this.rightMonkey && gameActive) {
-        if (this.rightMonkey.x < 650) this.rightMonkey.x = 650;
-        if (this.rightMonkey.x > 850) this.rightMonkey.x = 850;
-        if (this.rightMonkey.body.touching.down) this.rightMonkey.setVelocityX(0);
-    }
+    if (!gameActive) return;
     
-    if (this.leftMonkey.x < 200) {
-        this.leftMonkey.x = 200;
-        this.leftMonkey.setVelocityX(20);
+  
+    if (this.cursors.left.isDown) {
+        this.leftMonkey.setVelocityX(-200);
+    } 
+    else if (this.cursors.right.isDown) {
+        this.leftMonkey.setVelocityX(200);
+    } 
+    else {
+        this.leftMonkey.setVelocityX(0);
     }
-    if (this.leftMonkey.x > 500) {
-        this.leftMonkey.x = 500;
-        this.leftMonkey.setVelocityX(-20);
-    }
+
 }
 
 function showGameOverScreen() {
