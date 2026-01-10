@@ -418,6 +418,9 @@ function update() {
     else {
         this.leftMonkey.setVelocityX(0);
     }
+    if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+    this.leftMonkey.setVelocityY(-100);
+}
 
 }
 
